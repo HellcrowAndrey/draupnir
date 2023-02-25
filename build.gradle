@@ -1,19 +1,61 @@
-plugins {
-    id 'java'
+buildscript {
+    repositories {
+        mavenCentral()
+    }
 }
 
-group 'com.github'
-version '1.0.0'
+plugins {
+    id 'java'
+    id 'java-library'
+}
 
-repositories {
-    mavenCentral()
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
+
+allprojects {
+    apply plugin: 'java-library'
+
+    group = 'com.github'
+    version = '1.0.0'
+
+    repositories {
+        mavenCentral()
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+}
+
+subprojects {
+    dependencies {
+        implementation libs.javapoet
+        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    }
+
+    jar {
+        from {
+            configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+        }
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    }
+
+}
+
+project(':digital-tests') {
+    configurations.all {
+        exclude group: "com.squareup", module: "javapoet:1.13.0"
+    }
+}
+
+tasks.register('fatJar', Jar) {
+    archiveFileName.set("${rootProject.name}-${rootProject.version}.jar")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
 }
 
 dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
-}
-
-test {
-    useJUnitPlatform()
+    implementation project(':processor')
 }
